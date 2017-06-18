@@ -56,6 +56,7 @@ def cookie_requests_post_json(cookie, *args, **kwargs):
     if response.status_code == 200:
         return json.loads(response.text)
     else:
+        print(response)
         raise RuntimeError()
 
 
@@ -109,6 +110,22 @@ class API(object):
         createRequestBean = {'meta': meta} #{'meta_type': meta_type, 'name': name, 'text': text, 'source_url': source_url, 'source_title': source_title}}
         with CookieAuthentication() as token:
             return cookie_requests_post_json(token, get_api_url() + '/create', data=json.dumps(createRequestBean))
+
+    @classmethod
+    def tag_create(cls, meta_hash, tag_name_value):
+        split_tag_name_value = tag_name_value.split('#')
+        name = split_tag_name_value[0]
+        if len(split_tag_name_value) > 1:
+            value = '#'.join(split_tag_name_value[1:])
+        else:
+            value = ''
+        tag = {
+            'meta_hash': meta_hash,
+            'name': name,
+            'value': value
+        }
+        with CookieAuthentication() as token:
+            return cookie_requests_post_json(token, get_api_url() + '/tag/create', data=json.dumps({'tag': tag}))
 
 
 class CDN(object):

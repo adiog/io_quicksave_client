@@ -7,6 +7,7 @@ Copyright (c) 2017 Aleksander Gajewski <adiog@quicksave.io>.
 """
 import base64
 import configparser
+import json
 import os
 import subprocess
 import tempfile
@@ -20,6 +21,9 @@ from magic import Magic
 from quicksave_api import API
 
 meta_override_arguments = ['icon', 'name', 'text', 'author', 'source_url', 'source_title']
+
+class GLOBAL(object):
+    dry = False
 
 
 def get_parsed_override_meta(args):
@@ -54,21 +58,23 @@ def qs():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-C", "--config-file", help="use config file [default ~/.quicksave.ini]")
-    parser.add_argument("-T", "--token-file", help="use token file [default ~/.quicksave.token]")
+    parser.add_argument("-K", "--token-file", help="use token file [default ~/.quicksave.token]")
 
     parser.add_argument("-U", "--username", help="authenticate with username")
     parser.add_argument("-P", "--password", help="authenticate with password [unsafe!]")
 
     parser.add_argument("-q", "--query", help="retrieve items by QSQL query")
 
-    group = parser.add_mutually_exclusive_group()
+    group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-s", "--screenshot", help="quicksave screenshot", action="store_true")
     group.add_argument("-a", "--area", help="quicksave screenshot with area picker", action="store_true")
     group.add_argument("-f", "--file", help="quicksave file")
     group.add_argument("-c", "--clipboard", help="quicksave current clipboard content", action="store_true")
     group.add_argument("-t", "--text", help="quciksave text")
     group.add_argument("-i", "--input", help="quicksave text with external editor", action="store_true")
-    group.add_argument("-k", "--key", help="get authentication token [default]", action="store_true")
+
+    parser.add_argument('-T', '--add-tag', action='append', nargs=1, metavar=('TAG'))
+    parser.add_argument("-d", "--dry", help="dry run", action="store_true")
 
     setter_group = parser.add_argument_group()
     for meta_attr in meta_override_arguments:
@@ -87,6 +93,8 @@ def qs():
         token_file = args.token_file
     else:
         token_file = home + '/.quicksave.token'
+
+    GLOBAL.dry = args.dry
 
     config = configparser.ConfigParser()
     config.read(config_file)
@@ -107,22 +115,32 @@ def qs():
 
     override_meta = get_parsed_override_meta(args)
 
-    #subprocess.getoutput
+    meta_hash = ''
 
-    if args.screenshot:
-        screenshot(config, override_meta)
-    elif args.area:
-        area(config, override_meta)
-    elif args.file:
-        file(config, override_meta, args.file)
-    elif args.clipboard:
-        clipboard(config, override_meta)
-    elif args.text:
-        text(config, override_meta, args.text)
-    elif args.input:
-        do_input(config, override_meta)
+    try:
+        if args.screenshot:
+            mata_hash = screenshot(config, override_meta)
+        elif args.area:
+            meta_hash = area(config, override_meta)
+        elif args.file:
+            meta_hash = file(config, override_meta, args.file)
+        elif args.clipboard:
+            meta_hash = clipboard(config, override_meta)
+        elif args.text:
+            meta_hash = text(config, override_meta, args.text)
+        elif args.input:
+            meta_hash = do_input(config, override_meta)
+        else:
+            print("just getting token")
+    except KeyboardInterrupt:
+        if config['GUI']['notify_failure_cmd']:
+            notify = 'Failure'
+            subprocess.check_output([re.sub('\$\{NOTIFICATION\}', notify, part) for part in config['GUI']['notify_failure_cmd'].split(' ')])
     else:
-        print("just getting token")
+        if meta_hash and args.add_tag:
+            for tag in args.add_tag:
+                API.tag_create(meta_hash, tag[0])
+
 
 
 def screenshot(config, override_meta):
@@ -130,26 +148,46 @@ def screenshot(config, override_meta):
     cmd, cmd_output, meta = get_config_for_option(config, override_meta, 'screenshot')
     print(cmd)
     print(subprocess.check_output(cmd.split(' ')))
-    meta.update({'meta_type': 'screenshot'})
-    response = API.create(meta)
+    meta.update({'meta_type': 'quicksave/screenshot'})
+    if not GLOBAL.dry:
+        response = API.create(meta)
+        meta_hash = response['item']['meta']['meta_hash']
+    else:
+        print('API.create(%s)' % meta)
+        meta_hash = ''
     magic_mimetyper = Magic()
     mimetype = magic_mimetyper.from_file(cmd_output)
     with open(cmd_output, 'rb') as file:
         filebase = base64.b64encode(file.read()).decode('ascii')
-        API.upload(response['item']['meta']['meta_hash'], mimetype, 'screenshot.png', filebase)
+        filename = 'screenshot.png'
+        if not GLOBAL.dry:
+            API.upload(meta_hash, mimetype, filename, filebase)
+        else:
+            print('API.upload(__meta_hash__, %s, %s, __base64__)' % (mimetype, filename))
+    return meta_hash
 
 def area(config, override_meta):
     print("area")
     cmd, cmd_output, meta = get_config_for_option(config, override_meta, 'area')
     print(cmd)
     print(subprocess.check_output(cmd.split(' ')))
-    meta.update({'meta_type': 'screenshot'})
-    response = API.create(meta)
+    meta.update({'meta_type': 'quicksave/screenshot'})
+    if not GLOBAL.dry:
+        response = API.create(meta)
+        meta_hash = response['item']['meta']['meta_hash']
+    else:
+        print('API.create(%s)' % meta)
+        meta_hash = ''
     magic_mimetyper = Magic()
     mimetype = magic_mimetyper.from_file(cmd_output)
     with open(cmd_output, 'rb') as file:
         filebase = base64.b64encode(file.read()).decode('ascii')
-        API.upload(response['item']['meta']['meta_hash'], mimetype, 'screenshot.png', filebase)
+        filename = 'screenshot.png'
+        if not GLOBAL.dry:
+            API.upload(meta_hash, mimetype, filename, filebase)
+        else:
+            print('API.upload(__meta_hash__, %s, %s, __base64__)' % (mimetype, filename))
+    return meta_hash
 
 def file(config, override_meta, upload_file):
     print("file")
@@ -158,15 +196,33 @@ def file(config, override_meta, upload_file):
     bashed_meta = {k:subprocess.getoutput('echo \'echo "%s"\' | bash' % v) for k,v in common_meta.items()}
     bashed_meta.update(override_meta)
 
-    meta = bashed_meta
-    meta.update({'meta_type': 'file'})
-    response = API.create(meta)
     magic_mimetyper = Magic()
     mimetype = magic_mimetyper.from_file(upload_file)
+
+    meta = bashed_meta
+
+    meta_type = 'file'
+    for autodetect_group in config['autodetect']:
+        autodetect_patterns = json.loads(config['autodetect'][autodetect_group])
+        for autodetect_pattern in autodetect_patterns:
+            print(autodetect_pattern, mimetype)
+            if mimetype == autodetect_pattern:
+                meta_type = autodetect_group
+    meta.update({'meta_type': 'quicksave/' + meta_type})
+    if not GLOBAL.dry:
+        response = API.create(meta)
+        meta_hash = response['item']['meta']['meta_hash']
+    else:
+        print('API.create(%s)' % meta)
+        meta_hash = ''
     with open(upload_file, 'rb') as bfile:
         filebase = base64.b64encode(bfile.read()).decode('ascii')
-        target_filename = os.path.basename(upload_file)
-        API.upload(response['item']['meta']['meta_hash'], mimetype, target_filename, filebase)
+        filename = os.path.basename(upload_file)
+        if not GLOBAL.dry:
+            API.upload(response['item']['meta']['meta_hash'], mimetype, filename, filebase)
+        else:
+            print('API.upload(__meta_hash__, %s, %s, __base64__ [%sB])' % (mimetype, filename, len(filebase)))
+    return meta_hash
 
 def clipboard(config, override_meta):
     print("clipboard")
@@ -176,12 +232,18 @@ def clipboard(config, override_meta):
     with open(cmd_output, 'r') as clip:
         meta['text'] = clip.read()
     meta.update({'meta_type': 'clipboard'})
-    response = API.create(meta)
+    if not GLOBAL.dry:
+        response = API.create(meta)
+        meta_hash = response['item']['meta']['meta_hash']
+    else:
+        print('API.create(%s)' % meta)
+        meta_hash = ''
     #magic_mimetyper = Magic()
     #mimetype = magic_mimetyper.from_file(cmd_output)
     #with open(cmd_output, 'rb') as file:
     #    filebase = base64.b64encode(file.read()).decode('ascii')
     #    API.upload(response['item']['meta']['meta_hash'], mimetype, 'clipboard.txt', filebase)
+    return meta_hash
 
 def text(config, override_meta, text):
     print("text")
@@ -191,7 +253,13 @@ def text(config, override_meta, text):
     meta = bashed_meta
     meta['text'] = text
     meta.update({'meta_type': 'clipboard'})
-    response = API.create(meta)
+    if not GLOBAL.dry:
+        response = API.create(meta)
+        meta_hash = response['item']['meta']['meta_hash']
+    else:
+        print('API.create(%s)' % meta)
+        meta_hash = ''
+    return meta_hash
 
 def do_input(config, override_meta):
     print("input")
@@ -201,7 +269,13 @@ def do_input(config, override_meta):
     with open(cmd_output, 'r') as inp:
         meta['text'] = inp.read()
     meta.update({'meta_type': 'note'})
-    response = API.create(meta)
+    if not GLOBAL.dry:
+        response = API.create(meta)
+        meta_hash = response['item']['meta']['meta_hash']
+    else:
+        print('API.create(%s)' % meta)
+        meta_hash = ''
+    return meta_hash
 
 if __name__ == '__main__':
     qs()
