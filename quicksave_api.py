@@ -1,12 +1,14 @@
 # This file is a part of quicksave project.
 # Copyright (c) 2017 Aleksander Gajewski <adiog@quicksave.io>
 
-import configparser
 import getpass
 import json
-import os
+from pathlib import Path
 
 import requests
+import sys
+
+from cliCredentialsPrompt import cli_credentials_prompt
 
 SESSION_COOKIE_NAME = 'token'
 
@@ -24,6 +26,7 @@ def get_oauth_url():
 
 
 def read_token(token_file):
+    Path(token_file).touch()
     with open(token_file, 'r') as f:
         return f.read()
 
@@ -66,6 +69,10 @@ def is_token_valid(token):
 
 
 class CookieAuthentication(object):
+    prompt = cli_credentials_prompt
+    #def __init__(self, prompt):
+    #    self.prompt = prompt
+
     def __enter__(self):
         token = read_token(API.token_file)
         if not is_token_valid(token):
@@ -76,11 +83,13 @@ class CookieAuthentication(object):
                 else:
                     password = getpass.getpass('Password: ')
                 token = get_token(username, password)
+            attempts = 0
             while not is_token_valid(token):
-                username = input('Username [%s]: ' % getpass.getuser())
-                if username == '':
-                    username = getpass.getuser()
-                password = getpass.getpass('Password: ')
+                if attempts == 3:
+                    sys.exit(1)
+                else:
+                    attempts += 1
+                username, password = CookieAuthentication.prompt()
                 token = get_token(username, password)
             else:
                 set_token(API.token_file, token)

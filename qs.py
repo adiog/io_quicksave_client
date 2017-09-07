@@ -18,7 +18,9 @@ import re
 
 from magic import Magic
 
-from quicksave_api import API
+from cliCredentialsPrompt import cli_credentials_prompt
+from guiCredentialsPrompt import gui_credentials_prompt
+from quicksave_api import API, CookieAuthentication
 
 meta_override_arguments = ['icon', 'name', 'text', 'author', 'source_url', 'source_title']
 
@@ -60,10 +62,15 @@ def qs():
     parser.add_argument("-C", "--config-file", help="use config file [default ~/.quicksave.ini]")
     parser.add_argument("-K", "--token-file", help="use token file [default ~/.quicksave.token]")
 
-    parser.add_argument("-U", "--username", help="authenticate with username")
-    parser.add_argument("-P", "--password", help="authenticate with password [unsafe!]")
+    prompt_group = parser.add_mutually_exclusive_group(required=False)
+    prompt_group.add_argument("--gui", dest="gui", help="use GUI prompt", action='store_true')
+    prompt_group.add_argument("--cli", dest="cli", help="use CLI prompt", action='store_true')
+    prompt_group.add_argument("--inline", dest="inline", help="use provided credentials", action='store_true')
 
-    parser.add_argument("-q", "--query", help="retrieve items by QSQL query")
+    parser.add_argument("-U", "--username", help="authenticate with username", action="store_true")
+    parser.add_argument("-P", "--password", help="authenticate with password [unsafe!]", action="store_true")
+
+    #parser.add_argument("-q", "--query", help="retrieve items by QSQL query")
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-s", "--screenshot", help="quicksave screenshot", action="store_true")
@@ -84,6 +91,12 @@ def qs():
 
     home = expanduser("~")
 
+    prompt = cli_credentials_prompt
+    if args.cli:
+        CookieAuthentication.prompt = cli_credentials_prompt
+    elif args.gui:
+        CookieAuthentication.prompt = gui_credentials_prompt
+
     if args.config_file:
         config_file = args.config_file
     else:
@@ -99,8 +112,11 @@ def qs():
     config = configparser.ConfigParser()
     config.read(config_file)
 
-    if args.username:
-        username = args.username
+    if args.inline:
+        if args.username:
+            username = args.username
+        else:
+            username = None
         if args.password:
             password = args.password
         else:
