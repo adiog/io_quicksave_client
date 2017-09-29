@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# This file is a part of quicksave project.
+# Copyright (c) 2017 Aleksander Gajewski <adiog@quicksave.io>.
+
+. ${HOME}/.quicksave/venv/bin/activate
+python3 $*

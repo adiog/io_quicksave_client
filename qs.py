@@ -16,6 +16,7 @@ import argparse
 
 import re
 
+import sys
 from magic import Magic
 
 from cliCredentialsPrompt import cli_credentials_prompt
@@ -79,9 +80,11 @@ def qs():
     group.add_argument("-c", "--clipboard", help="quicksave current clipboard content", action="store_true")
     group.add_argument("-t", "--text", help="quciksave text")
     group.add_argument("-i", "--input", help="quicksave text with external editor", action="store_true")
+    group.add_argument("-D", "--dev", help="developer mode")
 
     parser.add_argument('-T', '--add-tag', action='append', nargs=1, metavar=('TAG'))
     parser.add_argument("-d", "--dry", help="dry run", action="store_true")
+
 
     setter_group = parser.add_argument_group()
     for meta_attr in meta_override_arguments:
@@ -132,6 +135,13 @@ def qs():
     override_meta = get_parsed_override_meta(args)
 
     meta_hash = ''
+
+    if args.dev:
+        [url, data] = args.dev.split('?')
+        print(url)
+        print(data)
+        API.dev(url, data)
+        sys.exit(0)
 
     try:
         if args.screenshot:

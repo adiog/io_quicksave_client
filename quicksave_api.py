@@ -136,6 +136,11 @@ class API(object):
         with CookieAuthentication() as token:
             return cookie_requests_post_json(token, get_api_url() + '/tag/create', data=json.dumps({'tag': tag}))
 
+    @classmethod
+    def dev(cls, url, data):
+        with CookieAuthentication() as token:
+            return cookie_requests_post_json(token, get_api_url() + url, data=data) #json.dumps(data))
+
 
 class CDN(object):
     @classmethod
