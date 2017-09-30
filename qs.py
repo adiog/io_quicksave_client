@@ -140,7 +140,7 @@ def qs():
         [url, data] = args.dev.split('?')
         print(url)
         print(data)
-        API.dev(url, data)
+        print(API.dev(url, data))
         sys.exit(0)
 
     try:
