@@ -70,6 +70,8 @@ setup(
         'quicksave_cli': 'src/qs'
     },
 
+    include_package_data=True,
+
     package_data={
         'quicksave_cli': ['data/*.png', 'data/quicksave.ini'],
     },
