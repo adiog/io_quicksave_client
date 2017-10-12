@@ -53,7 +53,7 @@ setup(
 
     keywords='quicksave command line client',
 
-    packages=['quicksave_cli'],
+    packages=find_packages('src'),
 
     install_requires=['PyQt5', 'python-magic', 'requests'],
 
@@ -67,13 +67,13 @@ setup(
     #},
 
     package_dir={
-        'quicksave_cli': 'src/qs'
+        '': 'src'
     },
 
     include_package_data=True,
 
     package_data={
-        'quicksave_cli': ['data/*.png', 'data/quicksave.ini'],
+        'qs': ['data/*.png', 'data/quicksave.ini'],
     },
 
     entry_points={
