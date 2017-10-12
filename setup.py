@@ -73,7 +73,7 @@ setup(
     include_package_data=True,
 
     package_data={
-        '': ['qs/data/*.png', 'qs/data/quicksave.ini'],
+        'qs': ['data/*.png', 'data/quicksave.ini'],
     },
 
     entry_points={
