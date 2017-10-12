@@ -72,9 +72,9 @@ setup(
 
     include_package_data=True,
 
-    #package_data={
-    #    'qs': ['data/*.png', 'data/quicksave.ini'],
-    #},
+    package_data={
+        '': ['qs/data/*.png', 'qs/data/quicksave.ini'],
+    },
 
     entry_points={
         'console_scripts': [
