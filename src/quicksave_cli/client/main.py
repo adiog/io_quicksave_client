@@ -21,9 +21,9 @@ import pkg_resources
 
 from magic import Magic
 
-from qs.client.credentials_prompt_cli import credentials_prompt_cli
-from qs.client.credentials_prompt_gui import credentials_prompt_gui
-from qs.client.quicksave_api import API, CookieAuthentication
+from quicksave_cli.client.credentials_prompt_cli import credentials_prompt_cli
+from quicksave_cli.client.credentials_prompt_gui import credentials_prompt_gui
+from quicksave_cli.client.quicksave_api import API, CookieAuthentication
 
 meta_override_arguments = ['icon', 'name', 'text', 'author', 'source_url', 'source_title']
 
@@ -66,7 +66,7 @@ def get_config_for_option(config, override_meta, option):
 
 
 def setup_file(user_files_dir, data_file):
-    source = pkg_resources.resource_filename('qs', 'data/' + data_file)
+    source = pkg_resources.resource_filename('quicksave_cli', 'data/' + data_file)
     target = user_files_dir + '/' + data_file
     if not os.path.exists(target):
         shutil.copy(source, target)
@@ -88,7 +88,7 @@ def setup_user_files():
     return config_file, token_file
 
 
-def qs():
+def main():
     config_file, token_file = setup_user_files()
 
     parser = argparse.ArgumentParser()
@@ -335,4 +335,4 @@ def do_input(config, override_meta):
 
 
 if __name__ == '__main__':
-    qs()
+    main()

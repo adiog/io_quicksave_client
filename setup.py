@@ -6,9 +6,7 @@ Copyright (c) 2017 Aleksander Gajewski <adiog@quicksave.io>.
 see: https://quicksave.io
 """
 
-# Always prefer setuptools over distutils
 from setuptools import setup, find_packages
-# To use a consistent encoding
 from codecs import open
 from os import path
 
@@ -73,12 +71,12 @@ setup(
     include_package_data=True,
 
     package_data={
-        'qs': ['data/*.png', 'data/quicksave.ini'],
+        'quicksave_cli': ['data/*.png', 'data/quicksave.ini'],
     },
 
     entry_points={
         'console_scripts': [
-            'qs=qs.client.main:qs',
+            'quicksave_cli=quicksave_cli.client.main:main',
         ],
     },
 )

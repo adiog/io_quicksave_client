@@ -8,7 +8,7 @@ from pathlib import Path
 
 import requests
 
-from qs.client.credentials_prompt_cli import credentials_prompt_cli
+from quicksave_cli.client.credentials_prompt_cli import credentials_prompt_cli
 
 SESSION_COOKIE_NAME = 'token'
 
