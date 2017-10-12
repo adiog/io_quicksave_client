@@ -3,12 +3,12 @@
 
 import getpass
 import json
+import sys
 from pathlib import Path
 
 import requests
-import sys
 
-from cliCredentialsPrompt import cli_credentials_prompt
+from src.qs.client import cli_credentials_prompt
 
 SESSION_COOKIE_NAME = 'token'
 
@@ -135,6 +135,11 @@ class API(object):
         }
         with CookieAuthentication() as token:
             return cookie_requests_post_json(token, get_api_url() + '/tag/create', data=json.dumps({'tag': tag}))
+
+    @classmethod
+    def query(cls, query):
+        with CookieAuthentication() as token:
+            return cookie_requests_post_json(token, get_api_url() + '/retrieve', data=json.dumps({'query': query}))
 
     @classmethod
     def dev(cls, url, data):

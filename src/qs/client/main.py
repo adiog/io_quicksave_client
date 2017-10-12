@@ -5,28 +5,32 @@
 This file is a part of quicksave project.
 Copyright (c) 2017 Aleksander Gajewski <adiog@quicksave.io>.
 """
+
+import argparse
 import base64
 import configparser
 import json
 import os
-import subprocess
-import tempfile
-from os.path import expanduser
-import argparse
-
 import re
-
+import subprocess
 import sys
+import tempfile
+
 from magic import Magic
 
-from cliCredentialsPrompt import cli_credentials_prompt
-from guiCredentialsPrompt import gui_credentials_prompt
-from quicksave_api import API, CookieAuthentication
+from src.qs.client import API, CookieAuthentication
+from src.qs.client import cli_credentials_prompt
+from src.qs.client import gui_credentials_prompt
 
 meta_override_arguments = ['icon', 'name', 'text', 'author', 'source_url', 'source_title']
 
+
 class GLOBAL(object):
     dry = False
+
+
+def print_json(json_to_print):
+    print(json.dumps(json_to_print, indent=2))
 
 
 def get_parsed_override_meta(args):
@@ -57,7 +61,15 @@ def get_config_for_option(config, override_meta, option):
     #print(bashed_meta)
     return command, filename, bashed_meta
 
+import pkg_resources
+
+DATA_PATH = pkg_resources.resource_filename('qs', 'data/quicksave.ini')
+
 def qs():
+    print(DATA_PATH)
+    with open(DATA_PATH) as d:
+        print(d.read())
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-C", "--config-file", help="use config file [default ~/.quicksave.ini]")
@@ -71,8 +83,6 @@ def qs():
     parser.add_argument("-U", "--username", help="authenticate with username", action="store_true")
     parser.add_argument("-P", "--password", help="authenticate with password [unsafe!]", action="store_true")
 
-    #parser.add_argument("-q", "--query", help="retrieve items by QSQL query")
-
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-s", "--screenshot", help="quicksave screenshot", action="store_true")
     group.add_argument("-a", "--area", help="quicksave screenshot with area picker", action="store_true")
@@ -81,6 +91,8 @@ def qs():
     group.add_argument("-t", "--text", help="quciksave text")
     group.add_argument("-i", "--input", help="quicksave text with external editor", action="store_true")
     group.add_argument("-D", "--dev", help="developer mode")
+    group.add_argument("-q", "--query", help="retrieve items by QSQL query")
+
 
     parser.add_argument('-T', '--add-tag', action='append', nargs=1, metavar=('TAG'))
     parser.add_argument("-d", "--dry", help="dry run", action="store_true")
@@ -92,7 +104,7 @@ def qs():
 
     args = parser.parse_args()
 
-    home = expanduser("~")
+    home = os.path.expanduser("~")
 
     prompt = cli_credentials_prompt
     if args.cli:
@@ -140,7 +152,10 @@ def qs():
         [url, data] = args.dev.split('?')
         print(url)
         print(data)
-        print(API.dev(url, data))
+        print_json(API.dev(url, data))
+        sys.exit(0)
+    elif args.query:
+        print_json(API.query(args.query))
         sys.exit(0)
 
     try:
@@ -165,12 +180,11 @@ def qs():
     else:
         if meta_hash and args.add_tag:
             for tag in args.add_tag:
-                API.tag_create(meta_hash, tag[0])
-
+                print_json(API.tag_create(meta_hash, tag[0]))
 
 
 def screenshot(config, override_meta):
-    print("screenhot")
+    print("screenshot")
     cmd, cmd_output, meta = get_config_for_option(config, override_meta, 'screenshot')
     print(cmd)
     print(subprocess.check_output(cmd.split(' ')))
@@ -191,6 +205,7 @@ def screenshot(config, override_meta):
         else:
             print('API.upload(__meta_hash__, %s, %s, __base64__)' % (mimetype, filename))
     return meta_hash
+
 
 def area(config, override_meta):
     print("area")
@@ -214,6 +229,7 @@ def area(config, override_meta):
         else:
             print('API.upload(__meta_hash__, %s, %s, __base64__)' % (mimetype, filename))
     return meta_hash
+
 
 def file(config, override_meta, upload_file):
     print("file")
@@ -250,6 +266,7 @@ def file(config, override_meta, upload_file):
             print('API.upload(__meta_hash__, %s, %s, __base64__ [%sB])' % (mimetype, filename, len(filebase)))
     return meta_hash
 
+
 def clipboard(config, override_meta):
     print("clipboard")
     cmd, cmd_output, meta = get_config_for_option(config, override_meta, 'clipboard')
@@ -264,12 +281,8 @@ def clipboard(config, override_meta):
     else:
         print('API.create(%s)' % meta)
         meta_hash = ''
-    #magic_mimetyper = Magic()
-    #mimetype = magic_mimetyper.from_file(cmd_output)
-    #with open(cmd_output, 'rb') as file:
-    #    filebase = base64.b64encode(file.read()).decode('ascii')
-    #    API.upload(response['item']['meta']['meta_hash'], mimetype, 'clipboard.txt', filebase)
     return meta_hash
+
 
 def text(config, override_meta, text):
     print("text")
@@ -287,6 +300,7 @@ def text(config, override_meta, text):
         meta_hash = ''
     return meta_hash
 
+
 def do_input(config, override_meta):
     print("input")
     cmd, cmd_output, meta = get_config_for_option(config, override_meta, 'input')
@@ -302,6 +316,7 @@ def do_input(config, override_meta):
         print('API.create(%s)' % meta)
         meta_hash = ''
     return meta_hash
+
 
 if __name__ == '__main__':
     qs()
