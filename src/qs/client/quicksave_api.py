@@ -8,7 +8,7 @@ from pathlib import Path
 
 import requests
 
-from src.qs.client import cli_credentials_prompt
+from qs.client.credentials_prompt_cli import credentials_prompt_cli
 
 SESSION_COOKIE_NAME = 'token'
 
@@ -69,9 +69,7 @@ def is_token_valid(token):
 
 
 class CookieAuthentication(object):
-    prompt = cli_credentials_prompt
-    #def __init__(self, prompt):
-    #    self.prompt = prompt
+    prompt = credentials_prompt_cli
 
     def __enter__(self):
         token = read_token(API.token_file)
