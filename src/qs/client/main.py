@@ -12,9 +12,12 @@ import configparser
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
+
+import pkg_resources
 
 from magic import Magic
 
@@ -61,19 +64,37 @@ def get_config_for_option(config, override_meta, option):
     #print(bashed_meta)
     return command, filename, bashed_meta
 
-import pkg_resources
 
-DATA_PATH = pkg_resources.resource_filename('qs', 'data/quicksave.ini')
+def setup_file(user_files_dir, data_file):
+    source = pkg_resources.resource_filename('qs', 'data/' + data_file)
+    target = user_files_dir + '/' + data_file
+    if not os.path.exists(target):
+        shutil.copy(source, target)
+    return target
+
+
+def setup_user_files():
+    user_files_dir = os.path.expanduser("~") + '/.quicksave'
+
+    if not os.path.exists(user_files_dir):
+        os.makedirs(user_files_dir)
+
+    config_file = setup_file(user_files_dir, 'quicksave.ini')
+    setup_file(user_files_dir, 'quicksave.png')
+    setup_file(user_files_dir, 'quickfail.png')
+
+    token_file = user_files_dir + '/quicksave.token'
+
+    return config_file, token_file
+
 
 def qs():
-    print(DATA_PATH)
-    with open(DATA_PATH) as d:
-        print(d.read())
+    config_file, token_file = setup_user_files()
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-C", "--config-file", help="use config file [default ~/.quicksave.ini]")
-    parser.add_argument("-K", "--token-file", help="use token file [default ~/.quicksave.token]")
+    parser.add_argument("-C", "--config-file", help="use config file [default ~/.quicksave/quicksave.ini]")
+    parser.add_argument("-K", "--token-file", help="use token file [default ~/.quicksave/quicksave.token]")
 
     prompt_group = parser.add_mutually_exclusive_group(required=False)
     prompt_group.add_argument("--gui", dest="gui", help="use GUI prompt", action='store_true')
@@ -106,21 +127,16 @@ def qs():
 
     home = os.path.expanduser("~")
 
-    prompt = credentials_prompt_cli
-    if args.cli:
-        CookieAuthentication.prompt = credentials_prompt_cli
-    elif args.gui:
+    if args.gui:
         CookieAuthentication.prompt = credentials_prompt_gui
+    else:
+        CookieAuthentication.prompt = credentials_prompt_cli
 
     if args.config_file:
         config_file = args.config_file
-    else:
-        config_file = home + '/.quicksave.ini'
 
     if args.token_file:
         token_file = args.token_file
-    else:
-        token_file = home + '/.quicksave.token'
 
     GLOBAL.dry = args.dry
 
