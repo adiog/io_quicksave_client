@@ -18,9 +18,9 @@ import tempfile
 
 from magic import Magic
 
-from src.qs.client import API, CookieAuthentication
-from src.qs.client import cli_credentials_prompt
-from src.qs.client import gui_credentials_prompt
+from qs.client.credentials_prompt_cli import credentials_prompt_cli
+from qs.client.credentials_prompt_gui import credentials_prompt_gui
+from qs.client.quicksave_api import API, CookieAuthentication
 
 meta_override_arguments = ['icon', 'name', 'text', 'author', 'source_url', 'source_title']
 
@@ -106,11 +106,11 @@ def qs():
 
     home = os.path.expanduser("~")
 
-    prompt = cli_credentials_prompt
+    prompt = credentials_prompt_cli
     if args.cli:
-        CookieAuthentication.prompt = cli_credentials_prompt
+        CookieAuthentication.prompt = credentials_prompt_cli
     elif args.gui:
-        CookieAuthentication.prompt = gui_credentials_prompt
+        CookieAuthentication.prompt = credentials_prompt_gui
 
     if args.config_file:
         config_file = args.config_file

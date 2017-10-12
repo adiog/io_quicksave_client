@@ -6,32 +6,43 @@ import getpass
 from PyQt5.QtWidgets import QApplication, QInputDialog
 
 
-def succFunc(qd, output):
-    value = qd.textValue()
+class MutableWrapper(object):
+    def __init__(self, value):
+        self.value = value
+
+    def set(self, value):
+        self.value = value
+
+    def get(self):
+        return self.value
+
+
+def qt_input_accepted(dialog, output):
+    value = dialog.textValue()
     if value:
-        output[0] = value
+        output.set(value)
 
 
-def failFunc(qd, output):
+def qt_input_rejected(dialog, output):
     pass
 
 
 def qt_input(prompt, default_value, is_password):
-    result = [default_value]
+    result = MutableWrapper(default_value)
     app = QApplication([])
-    qd = QInputDialog()
-    qd.setLabelText(prompt)
+    dialog = QInputDialog()
+    dialog.setLabelText(prompt)
     if is_password:
-        qd.setTextEchoMode(2)
-    qd.rejected.connect(lambda: failFunc(qd, result))
-    qd.accepted.connect(lambda: succFunc(qd, result))
-    qd.show()
+        dialog.setTextEchoMode(2)
+    dialog.accepted.connect(lambda: qt_input_accepted(dialog, result))
+    dialog.rejected.connect(lambda: qt_input_rejected(dialog, result))
+    dialog.show()
     app.exec()
-    return result[0]
+    return result.get()
 
 
-def gui_credentials_prompt():
+def credentials_prompt_gui():
     user = getpass.getuser()
-    username = qt_input('Username [%s]: ' % user, user, is_password=False)
+    username = qt_input(f'Username [{user}]: ', user, is_password=False)
     password = qt_input('Password: ', '', is_password=True)
     return username, password

@@ -4,7 +4,7 @@
 import getpass
 
 
-def cli_credentials_prompt():
+def credentials_prompt_cli():
     username = input('Username [%s]: ' % getpass.getuser())
     if username == '':
         username = getpass.getuser()
