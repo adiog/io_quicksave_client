@@ -76,7 +76,7 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'quicksave_cli=quicksave_cli.client.main:main',
+            'qs=quicksave_cli.client.main:main',
         ],
     },
 )
