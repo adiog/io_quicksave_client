@@ -30,7 +30,7 @@ def qt_input_rejected(dialog, output):
 def qt_input(prompt, default_value, is_password):
     result = MutableWrapper(default_value)
     app = QApplication([])
-    dialog = QInputDialog(flags=None)
+    dialog = QInputDialog()
     dialog.setLabelText(prompt)
     if is_password:
         dialog.setTextEchoMode(2)
