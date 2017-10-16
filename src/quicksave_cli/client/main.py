@@ -27,6 +27,8 @@ from quicksave_cli.client.quicksave_api import API, CookieAuthentication
 
 meta_override_arguments = ['icon', 'name', 'text', 'author', 'source_url', 'source_title']
 
+from pathlib import Path
+
 
 class GLOBAL(object):
     dry = False
@@ -320,6 +322,7 @@ def text(config, override_meta, text):
 def do_input(config, override_meta):
     print("input")
     cmd, cmd_output, meta = get_config_for_option(config, override_meta, 'input')
+    Path(cmd_output).touch()
     print(cmd)
     print(subprocess.check_output(cmd, shell=True))
     with open(cmd_output, 'r') as inp:
